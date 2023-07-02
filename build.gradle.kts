@@ -32,6 +32,7 @@ tasks {
     shadowJar {
         minimize()
         archiveClassifier.set("")
+        archiveVersion.set("")
 
         dependencies {
             include(dependency("net.sf.jopt-simple:jopt-simple"))
@@ -40,6 +41,10 @@ tasks {
             include(dependency("org.jline:jline-terminal-jansi"))
             include(dependency("com.github.Querz:NBT"))
         }
+    }
+
+    jar {
+        archiveVersion.set("")
     }
 }
 
