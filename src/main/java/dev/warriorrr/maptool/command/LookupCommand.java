@@ -2,12 +2,10 @@ package dev.warriorrr.maptool.command;
 
 import dev.warriorrr.maptool.MapTool;
 import dev.warriorrr.maptool.console.MapFileCompleter;
-import net.querz.nbt.io.NBTUtil;
-import net.querz.nbt.tag.CompoundTag;
+import dev.warriorrr.maptool.object.MapWrapper;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 
@@ -25,23 +23,18 @@ public class LookupCommand extends Command {
 			return;
 		}
 
-		final String fileName = "map_" + args[0] + ".dat";
-		final Path dotDatPath = mapTool.dataPath().resolve(fileName);
-		if (!Files.exists(dotDatPath)) {
-			System.out.println("Could not find a " + fileName + " file in the data folder.");
-			return;
-		}
-
 		try {
-			final CompoundTag tag = ((CompoundTag) NBTUtil.read(dotDatPath.toFile()).getTag()).getCompoundTag("data");
+			final MapWrapper map = mapTool.readMap(args[0]);
 
-			System.out.println("--- " + fileName + " ---");
-			System.out.println("Dimension: " + tag.getString("dimension"));
-			System.out.println("Locked: " + (tag.getBoolean("locked") ? "yes" : "no"));
-			System.out.println("Scale: " + tag.getByte("scale"));
-			System.out.println("xCenter: " + tag.getInt("xCenter"));
-			System.out.println("zCenter: " + tag.getInt("zCenter"));
+			System.out.println("--- " + map.fileName() + " ---");
+			System.out.println("Dimension: " + map.dimension());
+			System.out.println("Locked: " + (map.isLocked() ? "yes" : "no"));
+			System.out.println("Scale: " + map.scale());
+			System.out.println("xCenter: " + map.xCenter());
+			System.out.println("zCenter: " + map.zCenter());
 			System.out.println();
+		} catch (FileNotFoundException e) {
+			System.out.println(e.getMessage());
 		} catch (IOException e) {
 			System.out.println("An exception occurred when reading map data file");
 			e.printStackTrace();

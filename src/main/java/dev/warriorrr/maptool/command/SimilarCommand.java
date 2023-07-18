@@ -2,17 +2,16 @@ package dev.warriorrr.maptool.command;
 
 import dev.warriorrr.maptool.MapTool;
 import dev.warriorrr.maptool.console.MapFileCompleter;
-import net.querz.nbt.io.NBTUtil;
+import dev.warriorrr.maptool.object.MapWrapper;
 import net.querz.nbt.tag.CompoundTag;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
 public class SimilarCommand extends Command {
 	private final MapFileCompleter completer = new MapFileCompleter(mapTool);
@@ -29,31 +28,17 @@ public class SimilarCommand extends Command {
 		}
 
 		try {
-			final CompoundTag tag = mapTool.readMap(args[0]);
+			final MapWrapper map = mapTool.readMap(args[0]);
 
-			final int xCenter = tag.getInt("xCenter");
-			final int zCenter = tag.getInt("zCenter");
-
-			final Set<String> same = new HashSet<>();
-
-			// Check all map data files to find ones with the same center
-			for (Path path : mapTool.mapDataFiles().toList()) {
-				// Ignore our original map
-				if (path.getFileName().toString().contains(args[0]))
-					continue;
-
-				final CompoundTag map = mapTool.readMap(path);
-				if (map.getInt("xCenter") == xCenter && map.getInt("zCenter") == zCenter)
-					same.add(path.getFileName().toString().replace("map_", "").replace(".dat", ""));
-			}
+			final Map<Path, MapWrapper> same = findSimilarMaps(mapTool, map.xCenter(), map.zCenter());
 
 			if (same.isEmpty()) {
 				System.out.println("This map does not have any similar maps");
 			} else {
 				System.out.println("The following maps share x and z centers:");
 
-				for (String id : same) {
-					System.out.println(" - " + id);
+				for (Path path : same.keySet()) {
+					System.out.println(" - " + path.getFileName().toString().replace("map_", "").replace(".dat", ""));
 				}
 			}
 		} catch (FileNotFoundException e) {
@@ -70,5 +55,18 @@ public class SimilarCommand extends Command {
 			return completer.completions(args.get(0));
 		else
 			return Collections.emptyList();
+	}
+
+	public static Map<Path, MapWrapper> findSimilarMaps(MapTool mapTool, int xCenter, int zCenter) throws IOException {
+		final Map<Path, MapWrapper> same = new HashMap<>();
+
+		// Check all map data files to find ones with the same center
+		for (Path path : mapTool.mapDataFiles().toList()) {
+			final MapWrapper map = mapTool.readMap(path);
+			if (map.xCenter() == xCenter && map.zCenter() == zCenter)
+				same.put(path, map);
+		}
+
+		return same;
 	}
 }

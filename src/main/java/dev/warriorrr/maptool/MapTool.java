@@ -3,8 +3,11 @@ package dev.warriorrr.maptool;
 import dev.warriorrr.maptool.command.Command;
 import dev.warriorrr.maptool.command.ExportCommand;
 import dev.warriorrr.maptool.command.LookupCommand;
+import dev.warriorrr.maptool.command.PurgeCommand;
 import dev.warriorrr.maptool.command.SimilarCommand;
 import dev.warriorrr.maptool.command.ViewCommand;
+import dev.warriorrr.maptool.object.MapWrapper;
+import dev.warriorrr.maptool.object.PurgeState;
 import net.querz.nbt.io.NBTUtil;
 import net.querz.nbt.tag.CompoundTag;
 
@@ -21,6 +24,7 @@ import java.util.stream.Stream;
 public class MapTool {
 	private final Map<String, Command> commands = new HashMap<>();
 	private final Path dataPath;
+	private PurgeState purgeState = null;
 
 	public MapTool(final Path dataPath) {
 		this.dataPath = dataPath;
@@ -29,6 +33,7 @@ public class MapTool {
 		commands.put("view", new ViewCommand(this));
 		commands.put("export", new ExportCommand(this));
 		commands.put("similar", new SimilarCommand(this));
+		commands.put("purge", new PurgeCommand(this));
 	}
 
 	public Map<String, Command> commands() {
@@ -39,6 +44,11 @@ public class MapTool {
 		final String[] args = line.split(" ");
 		if (args.length == 0)
 			return;
+
+		if (this.purgeState != null) {
+			this.purgeState.input(this, args);
+			return;
+		}
 
 		final Command command = commands.get(args[0].toLowerCase(Locale.ROOT));
 		if (command == null) {
@@ -69,17 +79,24 @@ public class MapTool {
 		return this.dataPath;
 	}
 
-	public CompoundTag readMap(final String id) throws IOException, FileNotFoundException {
+	public MapWrapper readMap(final String id) throws IOException, FileNotFoundException {
 		final String fileName = "map_" + id + ".dat";
 		final Path path = this.dataPath.resolve(fileName);
 
 		return readMap(path);
 	}
 
-	public CompoundTag readMap(final Path path) throws IOException, FileNotFoundException {
+	public MapWrapper readMap(final Path path) throws IOException, FileNotFoundException {
 		if (!Files.exists(path))
 			throw new FileNotFoundException("Map " + path.getFileName() + " does not exist!");
 
-		return ((CompoundTag) NBTUtil.read(path.toFile()).getTag()).getCompoundTag("data");
+		final String fileName = path.getFileName().toString();
+		final int id = Integer.parseInt(fileName.replace("map_", "").replace(".dat", ""));
+
+		return MapWrapper.map(id, ((CompoundTag) NBTUtil.read(path.toFile()).getTag()).getCompoundTag("data"));
+	}
+
+	public void setPurgeState(final PurgeState state) {
+		this.purgeState = state;
 	}
 }
